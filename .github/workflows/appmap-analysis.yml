@@ -1,0 +1,64 @@
+name: appmap-analysis
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main # Change this to the name of the mainline branch
+  schedule:
+    - cron: '0 0 * * 0'
+
+permissions:
+  # Read the baseline artifact in order to perform the AppMap comparison.
+  actions: read
+  # Commit the AppMap configuration.
+  # If the EndBug/add-and-commit is removed, this can be changed to 'read'.
+  contents: write
+  # Add check annotations to the source code when a problem is detected.
+  checks: write
+  # Add a comment to the pull request.
+  pull-requests: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        ci_node_total: [2]
+        ci_node_index: [0, 1]
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: Enable gem update
+        run: bundle config unset deployment
+
+      - name: Install AppMap tools
+        uses: getappmap/install-action@v1
+        with:
+          project-type: bundler
+      - name: Commit changes
+        if: ${{ matrix.ci_node_index == 0}}
+        uses: EndBug/add-and-commit@v9  
+      
+      - name: Rails test setup
+        run: ./bin/rails db:migrate
+      - name: Run tests
+        env:
+          CI_NODE_TOTAL: ${{ matrix.ci_node_total }}
+          CI_NODE_INDEX: ${{ matrix.ci_node_index }}
+        run: |
+          ./bin/ci
+
+      - name: Archive AppMaps
+        uses: getappmap/archive-action@v1
+        with:
+          revision: ${{ github.event.pull_request.base.sha }}
