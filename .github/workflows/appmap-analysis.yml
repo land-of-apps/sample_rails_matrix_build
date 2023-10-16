@@ -60,7 +60,7 @@ jobs:
 
       - name: Archive AppMaps
         if: always()
-        uses: getappmap/archive-action@v1
+        uses: getappmap/archive-action@feat/report-inventory-on-merge
         with:
           archive-id: ${{ matrix.ci_node_index }}
   
@@ -81,7 +81,7 @@ jobs:
           install-appmap-library: false
 
       - name: Merge AppMaps
-        uses: getappmap/archive-action/merge@v1
+        uses: getappmap/archive-action/merge@feat/report-inventory-on-merge
         with:
           revision: ${{ github.event.pull_request.base.sha }}
           archive-count: 2
