@@ -79,7 +79,7 @@ jobs:
           install-appmap-library: false
 
       - name: Merge AppMaps
-        uses: getappmap/archive-action/merge@v1
+        uses: getappmap/archive-action/merge@feat/report-inventory-on-merge
         with:
           revision: ${{ github.event.pull_request.head.sha }}
           archive-count: 2
