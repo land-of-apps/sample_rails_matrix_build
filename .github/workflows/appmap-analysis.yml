@@ -72,8 +72,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Install AppMap tools
         uses: getappmap/install-action@v1
@@ -83,5 +81,12 @@ jobs:
       - name: Merge AppMaps
         uses: getappmap/archive-action/merge@feat/report-inventory-on-merge
         with:
-          revision: ${{ github.event.pull_request.base.sha }}
+          revision: ${{ github.event.pull_request.head.sha }}
           archive-count: 2
+
+      - name: Analyze AppMaps
+        uses: getappmap/analyze-action@v1
+        if: (success() || failure()) && github.event_name == 'pull_request'
+        with:
+          base-revision: ${{ github.event.pull_request.base.sha }}
+          head-revision: ${{ github.event.pull_request.head.sha }}
