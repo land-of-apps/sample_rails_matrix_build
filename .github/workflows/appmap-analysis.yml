@@ -1,0 +1,64 @@
+name: appmap-analysis
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main # Change this to the name of the mainline branch
+  schedule:
+    - cron: '0 0 * * 0'
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        ci_node_total: [2]
+        ci_node_index: [0, 1]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: Enable gem update
+        run: bundle config unset deployment
+
+      - name: Install AppMap tools
+        uses: getappmap/install-action@v1
+        with:
+          install-appmap-library: false
+      
+      - name: Rails test setup
+        run: ./bin/rails db:migrate
+      - name: Run tests
+        env:
+          CI_NODE_TOTAL: ${{ matrix.ci_node_total }}
+          CI_NODE_INDEX: ${{ matrix.ci_node_index }}
+        run: |
+          ./bin/ci
+
+      - name: Archive AppMaps
+        if: always()
+        uses: getappmap/archive-action@v1
+        with:
+          archive-id: ${{ matrix.ci_node_index }}
+  
+  appmap-analysis:
+    if: always()
+    needs: [test]
+    uses: getappmap/analyze-action/.github/workflows/appmap-analysis-matrix.yml@v1
+    with:
+      archive-count: 2 # Set to the total number of test runners
+    permissions:
+      actions: read
+      contents: read
+      checks: write
+      pull-requests: write
